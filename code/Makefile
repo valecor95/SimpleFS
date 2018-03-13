@@ -5,7 +5,8 @@ AR = ar
 
 HEADERS = bitmap.h\
 		disk_driver.h\
-		simplefs.h
+		simplefs.h\
+		shell.h
  
 shell: shell.c bitmap.c disk_driver.c simplefs.c $(HEADERS)
 	$(CC) $(CCOPTS) shell.c bitmap.c disk_driver.c simplefs.c -o shell
@@ -13,13 +14,13 @@ shell: shell.c bitmap.c disk_driver.c simplefs.c $(HEADERS)
 simplefs_test: bitmap.c disk_driver.c simplefs.c simplefs_test.c $(HEADERS)
 	$(CC) $(CCOPTS) bitmap.c disk_driver.c simplefs.c simplefs_test.c -o simplefs_test
 	
-test_disk_driver: bitmap.c disk_driver.c test_disk_driver.c $(HEADERS)
-	$(CC) $(CCOPTS) bitmap.c disk_driver.c test_disk_driver.c -o test_disk_driver
+disk_driver_test: bitmap.c disk_driver.c test_disk_driver.c $(HEADERS)
+	$(CC) $(CCOPTS) bitmap.c disk_driver.c disk_driver_test.c -o disk_driver_test
 
-test_bitmap: bitmap.c test_bitmap.c $(HEADERS)
-	$(CC) $(CCOPTS) bitmap.c test_bitmap.c -o test_bitmap
+bitmap_test: bitmap.c bitmap_test.c $(HEADERS)
+	$(CC) $(CCOPTS) bitmap.c bitmap_test.c -o bitmap_test
 	
 .phony: clean
 
 clean:
-	rm -f *.o shell test_bitmap test_disk_driver simplefs_test disk_file.txt disco.disk
+	rm -f *.o shell bitmap_test disk_driver_test simplefs_test disk_file.txt disco.disk
