@@ -16,3 +16,5 @@ File System
      structs of type "directory_entry",
      containing the blocks where the files in that folder start
      and if they are directory themselves
+     
+     This is a project developed for the Operating Systems course at Sapienza University of Rome
