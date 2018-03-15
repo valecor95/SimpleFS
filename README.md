@@ -11,10 +11,12 @@ File System
      - data blocks
      - directory blocks
 
-     A data block are "random" information
-     A directory block contains a sequence of
-     structs of type "directory_entry",
-     containing the blocks where the files in that folder start
-     and if they are directory themselves
-     
-     This is a project developed for the Operating Systems course at Sapienza University of Rome
+   A data block are "random" information
+   A directory block contains a sequence of
+   structs of type "directory_entry",
+   containing the blocks where the files in that folder start
+   and if they are directory themselves
+    
+This is a project developed for the Operating Systems course at Sapienza University of Rome
+
+For more info go to the Wiki section
