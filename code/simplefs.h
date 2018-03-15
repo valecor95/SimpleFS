@@ -5,10 +5,10 @@
 #define FDB_space (BLOCK_SIZE - sizeof(BlockHeader) - sizeof(FileControlBlock) - sizeof(int))/sizeof(int) //maximum free space on FirstDirectoryBlock
 #define DB_space (BLOCK_SIZE - sizeof(BlockHeader))/sizeof(int)                                           //maximum free space on DirectoryBlock
 
-#define FFB_space BLOCK_SIZE - sizeof(FileControlBlock) - sizeof(BlockHeader)                           //maximum free space on FirstFileBlock
-#define FB_space BLOCK_SIZE - sizeof(BlockHeader)                                                       //maximum free space on FileBlock
+#define FFB_space BLOCK_SIZE - sizeof(FileControlBlock) - sizeof(BlockHeader)                             //maximum free space on FirstFileBlock
+#define FB_space BLOCK_SIZE - sizeof(BlockHeader)                                                         //maximum free space on FileBlock
 
-#define MAX_NAME_LEN 128                                                                                //maximum length for file and directory legth
+#define MAX_NAME_LEN 128                                                                                  //maximum length for file and directory legth
 
 
 /*these are structures stored on disk*/
@@ -27,8 +27,6 @@ typedef struct {
   int directory_block; // first block of the parent directory
   int block_in_disk;   // repeated position of the block on the disk
   char name[128];
-  //int  size_in_bytes;
-  //int size_in_blocks;
   int written_bytes;   // used only for files
   int is_dir;          // 0 for file, 1 for dir
 } FileControlBlock;
@@ -83,7 +81,6 @@ typedef struct {
   SimpleFS* sfs;                   // pointer to memory file system structure
   FirstFileBlock* fcb;             // pointer to the first block of the file(read it)
   FirstDirectoryBlock* directory;  // pointer to the directory where the file is stored
-  //BlockHeader* current_block;      // current block in the file
   int pos_in_file;                 // position of the cursor
 } FileHandle;
 
@@ -91,8 +88,6 @@ typedef struct {
   SimpleFS* sfs;                   // pointer to memory file system structure
   FirstDirectoryBlock* dcb;        // pointer to the first block of the directory(read it)
   FirstDirectoryBlock* directory;  // pointer to the parent directory (null if top level)
-  //BlockHeader* current_block;      // current block in the directory
-  //int pos_in_dir;                  // absolute position of the cursor in the directory
   int pos_in_block;                // relative position of the cursor in the block
 } DirectoryHandle;
 

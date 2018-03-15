@@ -13,12 +13,6 @@
 
 //write, read and free already at offset of blocks (offset for diskHeader and bitmap is already calculated inside functions)
 
-// opens the file (creating it if necessary)
-// allocates the necessary space on the disk
-// calculates how big the bitmap should be 
-// if the file was new
-// compiles a disk header, and fills in the bitmap of appropriate size
-// with all 0 (to denote the free space);
 void DiskDriver_init(DiskDriver* disk, const char* filename, int num_blocks){
 	if (disk == NULL || filename == NULL || num_blocks < 1){													//check parameters
 		ERROR_HELPER(-1, "Impossible to Init: Bad Parameters\n");
@@ -73,9 +67,6 @@ void DiskDriver_init(DiskDriver* disk, const char* filename, int num_blocks){
 	disk->fd = fd;
 }
 
-// reads the block in position block_num
-// returns -1 if the block is free according to the bitmap
-// 0 otherwise
 int DiskDriver_readBlock(DiskDriver* disk, void* dest, int block_num){
 	if(block_num > disk->header->bitmap_blocks || block_num < 0 || dest == NULL || disk == NULL ){				//check parameters
 		ERROR_HELPER(-1, "Impossible to read: Bad Parameters\n");
@@ -106,8 +97,6 @@ int DiskDriver_readBlock(DiskDriver* disk, void* dest, int block_num){
 	return 0;	 
 }
 
-// writes a block in position block_num, and alters the bitmap accordingly
-// returns -1 if operation not possible
 int DiskDriver_writeBlock(DiskDriver* disk, void* src, int block_num){
 	if(block_num > disk->header->bitmap_blocks || block_num < 0 || src == NULL || disk == NULL ){				//check parameters
 		ERROR_HELPER(-1, "Impossible to write: Bad Parameters\n");
@@ -143,8 +132,6 @@ int DiskDriver_writeBlock(DiskDriver* disk, void* src, int block_num){
 	return 0;	 
 }
 
-// update a block in position block_num, do not alters the bitmap accordingly
-// returns -1 if operation not possible
 int DiskDriver_updateBlock(DiskDriver* disk, void* src, int block_num){
 	if(block_num > disk->header->bitmap_blocks || block_num < 0 || src == NULL || disk == NULL ){				//check parameters
 		ERROR_HELPER(-1, "Impossible to write: Bad Parameters\n");
@@ -167,8 +154,6 @@ int DiskDriver_updateBlock(DiskDriver* disk, void* src, int block_num){
 	return 0;	 
 }
 
-// frees a block in position block_num, and alters the bitmap accordingly
-// returns -1 if operation not possible
 int DiskDriver_freeBlock(DiskDriver* disk, int block_num){
 	if(block_num > disk->header->bitmap_blocks || block_num < 0 || disk == NULL){								//check parameters
 		ERROR_HELPER(-1, "Impossible to free: Bad Parameters\n");
@@ -194,9 +179,6 @@ int DiskDriver_freeBlock(DiskDriver* disk, int block_num){
 	return 0;														
 }
 
-
-// same as free block + set every block to 0
-//become impossible to restore old data
 int DiskDriver_ExtremeFreeBlock(DiskDriver* disk, int block_num){
 	if(block_num > disk->header->bitmap_blocks || block_num < 0 || disk == NULL){								//check parameters
 		ERROR_HELPER(-1, "Impossible to free: Bad Parameters\n");
@@ -237,7 +219,6 @@ int DiskDriver_ExtremeFreeBlock(DiskDriver* disk, int block_num){
 	return 0;														
 }
 
-// returns the first free blockin the disk from position (checking the bitmap)
 int DiskDriver_getFreeBlock(DiskDriver* disk, int start){
 	if(start > disk->header->bitmap_blocks){																	//check parameters
 		ERROR_HELPER(-1, "Impossible to getFreeBlock: Bad Parameters\n");
@@ -252,7 +233,6 @@ int DiskDriver_getFreeBlock(DiskDriver* disk, int start){
 	return free_block;
 }
 
-// writes the data (flushing the mmaps)
 int DiskDriver_flush(DiskDriver* disk){
 	int bitmap_size = disk->header->num_blocks/bit_in_byte+1;
 	int ret = msync(disk->header, (size_t)sizeof(DiskHeader)+bitmap_size, MS_SYNC);								//Flush header and bitmap on file 

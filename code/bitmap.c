@@ -3,9 +3,6 @@
 #include <math.h>
 #include "bitmap.h"
 
-
-
-//returns the value of the bit in the byte
 int BitMap_getBit(BitMap* bmap, int pos){
     if(pos >= bmap->num_bits) return -1;                                //error, start not in range of bitmap blocks
     
@@ -13,8 +10,6 @@ int BitMap_getBit(BitMap* bmap, int pos){
     return bmap->entries[map.entry_num] >> map.bit_num & mask;
 }
 
-// converts a block index to an index in the array,
-// and a char that indicates the offset of the bit inside the array
 BitMapEntryKey BitMap_blockToIndex(int num){
     BitMapEntryKey map;
     int byte = num / bit_in_byte;
@@ -24,19 +19,11 @@ BitMapEntryKey BitMap_blockToIndex(int num){
     return map;
 }
 
-
-// converts a bit to a linear index
-// return -1 if invalid paramaters
 int BitMap_indexToBlock(int entry, char bit_num){
     if (entry < 0 || bit_num < 0) return -1;                            //error, block not in range of bitmap blocks
     return (entry * bit_in_byte) + bit_num;
 }
 
-
-// returns the index of the first bit having status "status"
-// in the bitmap bmap, and starts looking from position start
-// return -1 if can't find or staus bigger than num_bits
-// starts by 0
 int BitMap_get(BitMap* bmap, int start, int status){
     if (start > bmap->num_bits) return -1;                              //error, start not in range of bitmap blocks
     
@@ -48,9 +35,6 @@ int BitMap_get(BitMap* bmap, int start, int status){
     
 }
 
-
-
-// sets the bit at index pos in bmap to status
 int BitMap_set(BitMap* bmap, int pos, int status){
     if(pos >= bmap->num_bits) return -1;                                //error, start not in range of bitmap blocks
     

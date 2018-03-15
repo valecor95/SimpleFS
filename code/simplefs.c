@@ -9,9 +9,6 @@
 
 //needs to write all 0 in the directory before to create it
 
-
-// initializes a file system on an already made disk
-// returns a handle to the top level directory stored in the first block
 DirectoryHandle* SimpleFS_init(SimpleFS* fs, DiskDriver* disk){
 	if (fs == NULL || disk == NULL)
 		ERROR_HELPER(-1, "Impossible to Init: Bad Parameters\n");
@@ -23,7 +20,6 @@ DirectoryHandle* SimpleFS_init(SimpleFS* fs, DiskDriver* disk){
 	int ret = DiskDriver_readBlock(disk, fdb, 0);													//read block 0 of already made disk for the root directory
 	if (ret == -1){																					//no root directory, problems on filesystem
 		free(fdb);
-		//printf("%simpossible to use SimpleFS_init, needs to make the disk\n%s", COL_RED, COL_GRAY);
 		return NULL;
 	}
 
@@ -31,21 +27,11 @@ DirectoryHandle* SimpleFS_init(SimpleFS* fs, DiskDriver* disk){
 	dh->sfs = fs;
 	dh->dcb = fdb;
 	dh->directory = NULL;
-	//dh->current_block = &fdb->header;																//save the pointer to directory
-	//dh->pos_in_dir = 0;
 	dh->pos_in_block = 0;
 
-	//printf("init completed\n");
 	return dh;																						//return handler to root
 }
 
-
-
-// creates the inital structures, the top level directory
-// has name "/" and its control block is in the first position
-// it also clears the bitmap of occupied blocks on the disk
-// the current_directory_block is cached in the SimpleFS struct
-// and set to the top level directory
 void SimpleFS_format(SimpleFS* fs){
 	if (fs == NULL)
 		ERROR_HELPER(-1, "Impossible to format: Bad Parameters\n");
@@ -59,8 +45,6 @@ void SimpleFS_format(SimpleFS* fs){
 																									//populate fcb
 	rootDir.fcb.directory_block = -1;																//no parents => -1
 	rootDir.fcb.block_in_disk = 0;
-	//rootDir.fcb.size_in_blocks = 1;
-	//rootDir.fcb.size_in_bytes = BLOCK_SIZE;
 	rootDir.fcb.is_dir = 1;
 	strcpy(rootDir.fcb.name, "/");
 
@@ -72,14 +56,8 @@ void SimpleFS_format(SimpleFS* fs){
 	ret = DiskDriver_writeBlock(fs->disk, &rootDir, 0);												//write root directory on block 0, offset of diskHeader and bitmap_data already calculated by write
 	if (ret == -1)
 		printf("%sImpossible to format: problem on writeBlock\n%s", COL_RED, COL_GRAY);				//can't return error becouse function return imposted on void
-
-	//printf("formatting completed\n");
 }
 
-
-
-//same as format + set every block to 0
-//become impossible to restore old data
 void SimpleFS_Extremeformat(SimpleFS* fs){
 	if (fs == NULL)
 		ERROR_HELPER(-1, "Impossible to format: Bad Parameters\n");
@@ -93,8 +71,6 @@ void SimpleFS_Extremeformat(SimpleFS* fs){
 																									//populate fcb
 	rootDir.fcb.directory_block = -1;																//no parents => -1
 	rootDir.fcb.block_in_disk = 0;
-	//rootDir.fcb.size_in_blocks = 1;
-	//ootDir.fcb.size_in_bytes = BLOCK_SIZE;
 	rootDir.fcb.is_dir = 1;
 	strcpy(rootDir.fcb.name, "/");
 
@@ -114,21 +90,13 @@ void SimpleFS_Extremeformat(SimpleFS* fs){
 	DiskDriver_writeBlock(fs->disk, &rootDir, 0);													//write root directory on block 0, offset of diskHeader and bitmap_data already calculated by write
 	if (ret == -1)
 		printf("%sImpossible to format: problem on writeBlock\n%s", COL_RED, COL_GRAY);
-
-	//printf("extreme formatting completed\n");
 }
 
-
-
-//helping function
-//returns position of file if it already exist in the current block of the directory
-//otherwise return -1
-int checkFileEsistence(DiskDriver* disk, int entries, int* file_blocks, const char* filename){
+static int checkFileEsistence(DiskDriver* disk, int entries, int* file_blocks, const char* filename){
     FirstFileBlock to_check;                                                                        //to save the current file, needs to read the name
     int i;
     
     for (i = 0; i < entries; i++){                                               	                //checks every block indicator in the directory block
-        ///printf("inside checkFileEsistence, file_blocks[%d] = %d\n", i, file_blocks[i]);
 		if (file_blocks[i]> 0 && (DiskDriver_readBlock(disk, &to_check, file_blocks[i]) != -1)){    //read the FirstFileBlock of the file to check the name (if to_check block is not empty, block[i]>0)
             if (!strncmp(to_check.fcb.name, filename, MAX_NAME_LEN)){                          		//function to compare name strings, return 0 if s1 == s2
                 return i;                                                                       	//found the file, return 1 to exit on create_file
@@ -138,9 +106,6 @@ int checkFileEsistence(DiskDriver* disk, int entries, int* file_blocks, const ch
     return -1;
 }
 
-// creates an empty file in the directory d
-// returns null on error (file existing, no free blocks)
-// an empty file consists only of a block of type FirstBlock
 FileHandle* SimpleFS_createFile(DirectoryHandle* d, const char* filename){
 	if (d == NULL || filename == NULL)
 		ERROR_HELPER(-1, "Impossible to create file: Bad Parameters\n");
@@ -148,10 +113,8 @@ FileHandle* SimpleFS_createFile(DirectoryHandle* d, const char* filename){
 	int ret = 0;
 	FirstDirectoryBlock *fdb = d->dcb;																//save pointers, used for performance
 	DiskDriver* disk = d->sfs->disk;
-	//printf("inside createFile, num entries = %d\n", fdb->num_entries);
 
 	if (fdb->num_entries > 0){																		//directory not empty, needs to check if file already exist
-		//printf("check if file already exist\n");
 		if (checkFileEsistence(disk, FDB_space, fdb->file_blocks, filename) != -1){					//funcion to check if the file is in the FirstDirectoryBlock
 			printf("%sImpossible to create file: file already exist\n%s", COL_RED, COL_GRAY);
 			return NULL;																			//if yes return null
@@ -161,7 +124,6 @@ FileHandle* SimpleFS_createFile(DirectoryHandle* d, const char* filename){
 		DirectoryBlock db;
 
 		while (next != -1){																			//to check if file in another block of the directory
-			//printf("file is not the block, check other block\n");
 			ret = DiskDriver_readBlock(disk, &db, next);											//read new directory block
 			if (ret == -1){
 				printf("%sImpossible to create file: problem on readBlock to read next block and find already made same file\n%s", COL_RED, COL_GRAY);
@@ -181,7 +143,6 @@ FileHandle* SimpleFS_createFile(DirectoryHandle* d, const char* filename){
 		printf("%sImpossible to create file: impossible to find free block\n%s", COL_RED, COL_GRAY);
 		return NULL;
 	}
-	//printf("allocation structures for file and write on disk, block number = %d\n", new_block);
 																									//create new file
 	FirstFileBlock* new_file = calloc(1, sizeof(FirstFileBlock));									//use calloc to put all 0 on the file
 	new_file->header.block_in_file = 0;																//populate header of the file
@@ -190,8 +151,6 @@ FileHandle* SimpleFS_createFile(DirectoryHandle* d, const char* filename){
 
 	new_file->fcb.directory_block = fdb->fcb.block_in_disk;											//populate FileControlBlock
 	new_file->fcb.block_in_disk = new_block;
-	//new_file->fcb.size_in_bytes = BLOCK_SIZE;
-	//new_file->fcb.size_in_blocks = 1;
 	new_file->fcb.is_dir = 0;
 	new_file->fcb.written_bytes = 0;
 	strncpy(new_file->fcb.name, filename, MAX_NAME_LEN);
@@ -214,10 +173,8 @@ FileHandle* SimpleFS_createFile(DirectoryHandle* d, const char* filename){
     int where_to_save = 0;																			//if 0 there is space in firstDirectoryBlock, if 1 space in another block																	
 
 	if (fdb->num_entries < FDB_space){																//check if free space in FirstDirectoryBlock (implicit if num_entry == 0)
-		//printf("there is space in fdb\n");
 		int* blocks = fdb->file_blocks;
 		for(i=0; i<FDB_space; i++){																	//loop to find the position
-			///printf("finding space, blocks[%d] = %d\n", i, blocks[i]);
 			if (blocks[i] == 0){																	//free space in fdb->blocks[i]
 				found = 1;
 				entry = i;
@@ -239,7 +196,6 @@ FileHandle* SimpleFS_createFile(DirectoryHandle* d, const char* filename){
 			blockInFile++;																			//change block => update variables states
 			block_number = next;
 			for(i=0; i<DB_space; i++){																//loop to find the position
-				///printf("finding space, blocks[%d] = %d\n", i, blocks[i]);
 				if (blocks[i] == 0){
 					found = 1;
 					entry = i;
@@ -253,7 +209,6 @@ FileHandle* SimpleFS_createFile(DirectoryHandle* d, const char* filename){
 	}
 
 	if (!found){																					//in case of all blocks of the directory are already full
-		//printf("all blocks are already full, directory needs new block\n");
 		DirectoryBlock new_db = {0};																//create new directoryBlock
 		new_db.header.next_block = -1;
 		new_db.header.block_in_file = blockInFile;
@@ -299,17 +254,11 @@ FileHandle* SimpleFS_createFile(DirectoryHandle* d, const char* filename){
 	fh->sfs = d->sfs;
 	fh->fcb = new_file;
 	fh->directory = fdb;
-	//fh->current_block = (BlockHeader*) new_file;													//necessary cast
 	fh->pos_in_file = 0;
 	
-	//printf("file created\n");
 	return fh;
 }
 
-
-
-// reads in the (preallocated) blocks array, the name of all files in a directory
-// return number of file / directory reads or -1 in case of error
 int SimpleFS_readDir(char** names, DirectoryHandle* d){
 	if (d == NULL || names == NULL)
 		ERROR_HELPER(-1, "Impossible to read directory: Bad Parameters\n");
@@ -329,9 +278,6 @@ int SimpleFS_readDir(char** names, DirectoryHandle* d){
                 num_tot++;
 			}
 		}
-
-		//printf("num = %d\n", i);
-		//printf("num = %d\n", fdb->num_entries);
 
 		if (fdb->num_entries > i){																	//check if more entries in other bloks of the directory
 			int next = fdb->header.next_block;
@@ -355,19 +301,10 @@ int SimpleFS_readDir(char** names, DirectoryHandle* d){
 				next = db.header.next_block;														//goto next directoryBlock
 			}
 		}
-		//printf("completed to read directory\n");
-
-	} /*else {
-		printf("directory empty\n");
-		
-	}*/
-
+	}
 	return 0;
 }
 
-
-
-// opens a file in the  directory d. The file should be exisiting
 FileHandle* SimpleFS_openFile(DirectoryHandle* d, const char* filename){
 	if (d == NULL || filename == NULL)
 		ERROR_HELPER(-1, "Impossible to open file: Bad Parameters\n");
@@ -390,7 +327,6 @@ FileHandle* SimpleFS_openFile(DirectoryHandle* d, const char* filename){
 				found = 1;
 				DiskDriver_readBlock(disk, to_check, fdb->file_blocks[pos]);						//read again the correct file to complete handler
 				fh->fcb = to_check;
-				//fh->current_block = (BlockHeader*) to_check;
 			}
 
 		int next = fdb->header.next_block;
@@ -408,14 +344,12 @@ FileHandle* SimpleFS_openFile(DirectoryHandle* d, const char* filename){
 				found = 1;
 				DiskDriver_readBlock(disk, to_check, db.file_blocks[pos]);							//read again the correct file to complete handler
 				fh->fcb = to_check;
-				//fh->current_block = (BlockHeader*) to_check;
 			}
 
 			next = db.header.next_block;															//goto next directoryBlock
 		}
 
 		if (found){
-			//printf("file opened\n");
 			return fh;
 		} else {
 			printf("%sImpossible to open file: file doesn't exist\n%s", COL_RED, COL_GRAY);
@@ -429,17 +363,12 @@ FileHandle* SimpleFS_openFile(DirectoryHandle* d, const char* filename){
 	}
 }
 
-
-// closes a file handle (destroyes it)
 int SimpleFS_close(FileHandle* f){
+	free(f->fcb);
 	free(f);
 	return 0;
 }
 
-
-// writes in the file, at current position for size bytes stored in data
-// overwriting and allocating new space if necessary
-// returns the number of bytes written
 int SimpleFS_write(FileHandle* f, void* data, int size){
 	FirstFileBlock* ffb = f->fcb;
 	
@@ -517,10 +446,10 @@ int SimpleFS_write(FileHandle* f, void* data, int size){
 		next_block = fb_tmp.header.next_block;
 		block_in_file = fb_tmp.header.block_in_file;											//update id of next_block																			
 	}
+
+	return written_bytes;
 }
 
-// reads in the file, at current position size bytes stored in data
-// returns the number of bytes read
 int SimpleFS_read(FileHandle* f, void* data, int size){
 	FirstFileBlock* ffb = f->fcb;
 	
@@ -574,11 +503,10 @@ int SimpleFS_read(FileHandle* f, void* data, int size){
 		
 		next_block = fb_tmp.header.next_block;
 	}
+
+	return bytes_read;
 }
 
-// returns the number of bytes read (moving the current pointer to pos)
-// returns pos on success
-// -1 on error (file too short)
 int SimpleFS_seek(FileHandle* f, int pos){
 	FirstFileBlock* ffb = f->fcb;																	//auxiliary structure
 		
@@ -591,17 +519,11 @@ int SimpleFS_seek(FileHandle* f, int pos){
 	return pos;
 }
 
-
-
-//helping function
-//returns position of direcroty if it already exist in the current block of the directory
-//otherwise return -1
-int checkDirEsistence(DiskDriver* disk, int entries, int* file_blocks, const char* filename){
+static int checkDirEsistence(DiskDriver* disk, int entries, int* file_blocks, const char* filename){
     FirstDirectoryBlock to_check;                                                                   //to save the current file, needs to read the name
     int i;
     
     for (i = 0; i < entries; i++){                                               	                //checks every block indicator in the directory block
-        ///printf("inside checkFileEsistence, file_blocks[%d] = %d, i = %d\n", i, file_blocks[i]);
         if (file_blocks[i]> 0 && DiskDriver_readBlock(disk, &to_check, file_blocks[i]) != -1){      //read the FirstFileBlock of the file to check the name (if to_check block is not empty, block[i]>0)
             if (!strncmp(to_check.fcb.name, filename, MAX_NAME_LEN)){                          		//function to compare name strings, return 0 if s1 == s2
                 return i;                                                                       	//found the file, return 1 to exit on create_file
@@ -611,9 +533,6 @@ int checkDirEsistence(DiskDriver* disk, int entries, int* file_blocks, const cha
     return -1;
 }
 
-// seeks for a directory in d. If dirname is equal to ".." it goes one level up
-// 0 on success, negative value on error
-// it does side effect on the provided handle
 int SimpleFS_changeDir(DirectoryHandle* d, char* dirname){
 	if (d == NULL || dirname == NULL)
 		ERROR_HELPER(-1, "Impossible to change dir: Bad Parameters\n");
@@ -626,14 +545,11 @@ int SimpleFS_changeDir(DirectoryHandle* d, char* dirname){
 			return -1;
 		}
 		d->pos_in_block = 0;																		//reset directory
-		//d->pos_in_dir = 0;
-		//d->current_block = &(d->directory->header);
 		d->dcb = d->directory; 																		//this directory become the parent directory
 																									//search parent directory
 		int parent_block =  d->dcb->fcb.directory_block;											//save first block of parent directory
 		if (parent_block == -1){																	//new directory is root directory
 			d->directory = NULL;
-			//printf("directory changed\n");
 			return 0;
 		}
 		FirstDirectoryBlock* parent = malloc(sizeof(FirstDirectoryBlock));
@@ -644,7 +560,6 @@ int SimpleFS_changeDir(DirectoryHandle* d, char* dirname){
 		} else{
 			d->directory = parent;																	//save the correct parent
 		}
-		//printf("directory changed\n");
 		return 0;
 	} else if (d->dcb->num_entries < 0){
 		printf("%sImpossible to change directory, this directory is empty\n%s", COL_RED, COL_GRAY);
@@ -660,11 +575,8 @@ int SimpleFS_changeDir(DirectoryHandle* d, char* dirname){
 	if (pos >= 0){
 		DiskDriver_readBlock(disk, to_check, fdb->file_blocks[pos]);								//read again the correct directory to save it
 		d->pos_in_block = 0;																		//reset directory
-		//d->pos_in_dir = 0;
 		d->directory = fdb;																			//parent directory become this director
 		d->dcb = to_check; 																			//this directory become the read directory
-		//d->current_block = &(to_check->header);
-		//printf("directory changed\n");
 		return 0;
 	}
 
@@ -682,11 +594,8 @@ int SimpleFS_changeDir(DirectoryHandle* d, char* dirname){
 		if (pos >= 0){
 			DiskDriver_readBlock(disk, to_check, db.file_blocks[pos]);								//read again the correct file to complete handler
 			d->pos_in_block = 0;																	//reset directory
-			//d->pos_in_dir = 0;
 			d->directory = fdb;																		//parent directory become this director
 			d->dcb = to_check; 																		//this directory become the read directory
-			//d->current_block = &(to_check->header);
-			//printf("directory changed\n");
 			return 0;
 		}
 		next = db.header.next_block;																//goto next directoryBlock
@@ -696,11 +605,6 @@ int SimpleFS_changeDir(DirectoryHandle* d, char* dirname){
 	return -1;
 }
 
-
-
-// creates a new directory in the current one (stored in fs->current_directory_block)
-// 0 on success
-// -1 on error
 int SimpleFS_mkDir(DirectoryHandle* d, char* dirname){
 	if (d == NULL || dirname == NULL)
 		ERROR_HELPER(-1, "Impossible to create directory: Bad Parameters\n");
@@ -710,9 +614,8 @@ int SimpleFS_mkDir(DirectoryHandle* d, char* dirname){
 	DiskDriver* disk = d->sfs->disk;
 
 	if (fdb->num_entries > 0){																		//directory not empty, needs to check if file already exist
-		//printf("check if file already exist\n");
 		if (checkDirEsistence(disk, FDB_space, fdb->file_blocks, dirname) != -1){					//funcion to check if the file is in the FirstDirectoryBlock
-			printf("%sImpossible to create file: file already exist\n%s", COL_RED, COL_GRAY);
+			printf("%sImpossible to create directory: file already exist\n%s", COL_RED, COL_GRAY);
 			return -1;																				//if yes return null
 		}
 
@@ -720,15 +623,14 @@ int SimpleFS_mkDir(DirectoryHandle* d, char* dirname){
 		DirectoryBlock db;
 
 		while (next != -1){																			//to check if file in another block of the directory
-			//printf("file is not in fdb, check other block\n");
 			ret = DiskDriver_readBlock(disk, &db, next);											//read new directory block
 			if (ret == -1){
-				printf("%sImpossible to create file: problem on readBlock to read next block and find already made same file\n%s", COL_RED, COL_GRAY);
+				printf("%sImpossible to create directory: problem on readBlock to read next block and find already made same file\n%s", COL_RED, COL_GRAY);
 				return -1;
 			}
 
 			if (checkDirEsistence(disk, DB_space, db.file_blocks, dirname) != -1){					//to check if the file is in the DirectoryBlock
-				printf("Impossible to create file: file already exist\n");
+				printf("%sImpossible to create directory: file already exist\n%s", COL_RED, COL_GRAY);
 				return -1;
 			}
 			next = db.header.next_block;															//goto next directoryBlock
@@ -748,8 +650,6 @@ int SimpleFS_mkDir(DirectoryHandle* d, char* dirname){
 
 	new_directory->fcb.directory_block = fdb->fcb.block_in_disk;									//populate FileControlBlock
 	new_directory->fcb.block_in_disk = new_block;
-	//new_directory->fcb.size_in_bytes = BLOCK_SIZE;
-	//new_directory->fcb.size_in_blocks = 1;
 	new_directory->fcb.is_dir = 1;
 	strcpy(new_directory->fcb.name, dirname);
 
@@ -849,10 +749,6 @@ int SimpleFS_mkDir(DirectoryHandle* d, char* dirname){
 	return 0;
 }
 
-
-// removes the file in the current directory
-// returns -1 on failure 0 on success
-// if a directory, it removes recursively all contained files
 int SimpleFS_remove(DirectoryHandle* d, char* filename){
 	if (d == NULL || filename == NULL)
 		ERROR_HELPER(-1, "Impossible to remove directory: Bad Parameters\n");
@@ -943,6 +839,7 @@ int SimpleFS_remove(DirectoryHandle* d, char* filename){
 		db_tmp->file_blocks[id] = -1;
 		fdb->num_entries-=1;
 		DiskDriver_updateBlock(d->sfs->disk, db_tmp, block_in_disk);
+		DiskDriver_updateBlock(d->sfs->disk, fdb, fdb->fcb.block_in_disk);
 		return ret;
 	}
 	else{

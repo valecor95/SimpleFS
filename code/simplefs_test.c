@@ -39,7 +39,7 @@ int main(int agc, char** argv) {
   /*
   ////look inside root
   char v[BLOCK_SIZE];
-  memcpy(v, root_directory->dcb, BLOCK_SIZE); 
+  memcpy(v, root_directory->dcb, BLOCK_SIZE);
   printf("\n\ninside root\n");
   for (i = 0; i < BLOCK_SIZE; i++){
     for (check = 0; check < 8; check ++){
@@ -50,18 +50,14 @@ int main(int agc, char** argv) {
   }
   */
 
-  ////read empty directory
-  printf("\n\nread empty directory\n");
-    char** file = malloc(sizeof(char*));
-    ret = SimpleFS_readDir(file, root_directory);
-    printf("%s ", file[0]);
-
   ////test on create file
   printf("\n\nSTART test on create a file\n");
   FileHandle* fh = SimpleFS_createFile(root_directory, "file_test");
   if (fh == NULL){
     printf("create file failed, retry\n");
     fh = SimpleFS_createFile(root_directory, "file_test");
+  } else{
+      SimpleFS_close(fh);
   }
 
   ////test on create directory
@@ -71,12 +67,7 @@ int main(int agc, char** argv) {
     printf("create dir1 failed, retry\n");
     SimpleFS_mkDir(root_directory, "dir1");
   }
- 
-  char** file2 = malloc(sizeof(char*)*2);
-  ret = SimpleFS_readDir(file2, root_directory);
-  printf("%s ", file2[0]);
-  printf("%s ", file2[1]);
-  
+
   printf("\ntest error on already exist file\n");
   FileHandle* fh_double = SimpleFS_createFile(root_directory, "file_test");
 
@@ -84,10 +75,13 @@ int main(int agc, char** argv) {
   //test to create many files
   printf("\ntest to create more blocks in directory\n");
   char file_name[10];
+  FileHandle* fh_aa = NULL;
   for (i=0; i<100; i++){
     sprintf(file_name, "%d", i);                                                                //function to convert number in string
-    SimpleFS_createFile(root_directory, file_name);
+    fh_aa = SimpleFS_createFile(root_directory, file_name);
   }
+  if (fh_aa != NULL)
+      SimpleFS_close(fh_aa);
   printf("completed to create files\n");
   ///for test on error on free blocks it just needs decrease bloks of the disk
 
@@ -99,6 +93,10 @@ int main(int agc, char** argv) {
   for (i=0; i<root_directory->dcb->num_entries; i++){
     printf("%s ", files[i]);
   }
+  for (i=0; i<root_directory->dcb->num_entries; i++){
+    free(files[i]);
+  }
+  free(files);
   printf("check completed\n");
 
 
@@ -108,6 +106,8 @@ int main(int agc, char** argv) {
   if (fh1 == NULL){
     printf("open fake_file failed, retry with file_test\n");
     fh1 = SimpleFS_openFile(root_directory, "file_test");
+  } else{
+    SimpleFS_close(fh1);
   }
 
 
@@ -136,11 +136,11 @@ int main(int agc, char** argv) {
   for (i=0; i<root_directory->dcb->num_entries; i++){
     printf("%s ", files2[i]);
   }
+  for (i=0; i<root_directory->dcb->num_entries; i++){
+    free(files2[i]);
+  }
+  free(files2);
   printf("check completed\n");
-  
-  //test close file
-  printf("\n\nSTART test on close file\n");
-  SimpleFS_close(fh);
-  SimpleFS_close(fh_double);
-  SimpleFS_close(fh1);
+
+  printf("finished");
 }
