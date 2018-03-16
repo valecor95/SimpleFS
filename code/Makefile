@@ -14,11 +14,7 @@ shell: shell.c bitmap.c disk_driver.c simplefs.c $(HEADERS)
 simplefs_test: bitmap.c disk_driver.c simplefs.c simplefs_test.c $(HEADERS)
 	$(CC) $(CCOPTS) bitmap.c disk_driver.c simplefs.c simplefs_test.c -o simplefs_test
 	
-<<<<<<< HEAD
-disk_driver_test: bitmap.c disk_driver.c disk_driver_test.c $(HEADERS)
-=======
 disk_driver_test: bitmap.c disk_driver.c test_disk_driver.c $(HEADERS)
->>>>>>> 77478fe1c82cd164a7d7f0b5f5c8c99e15d23a12
 	$(CC) $(CCOPTS) bitmap.c disk_driver.c disk_driver_test.c -o disk_driver_test
 
 bitmap_test: bitmap.c bitmap_test.c $(HEADERS)
